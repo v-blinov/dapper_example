@@ -1,6 +1,12 @@
+using ShopApi.Data;
+using ShopApi.Repositories;
+using ShopApi.Repositories.Interfaces;
+
 var builder = WebApplication.CreateBuilder(args);
 
-// Add services to the container.
+builder.Services.AddSingleton<Context>();
+
+builder.Services.AddScoped<IOrderRepository, OrderRepository>(); 
 
 builder.Services.AddControllers();
 // builder.Services.AddEndpointsApiExplorer();

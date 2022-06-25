@@ -1,0 +1,66 @@
+﻿create database postgres;
+
+drop type if exists status;
+create type status as enum ('New', 'InProgress', 'Pending');
+
+drop type if exists product_note;
+create type product_note as (
+    product_id bigint,
+    count int    
+); 
+    
+drop table if exists orders;
+create table orders
+(
+    id uuid not null, -- constraint pk_orders_id primary key,
+    client_id bigint not null,   -- references clients(id),
+    creation_date timestamp not null default current_timestamp,
+    receiving_date timestamp,
+    status status not null,
+    products product_note[],
+    storage_id bigint not null   -- references storage(id),
+) partition by list(storage_id);
+
+-- Партиционирование для 20 складов
+create table orders_storage_1 partition of orders for values in (1);
+create table orders_storage_2 partition of orders for values in (2);
+create table orders_storage_3 partition of orders for values in (3);
+create table orders_storage_4 partition of orders for values in (4);
+create table orders_storage_5 partition of orders for values in (5);
+create table orders_storage_6 partition of orders for values in (6);
+create table orders_storage_7 partition of orders for values in (7);
+create table orders_storage_8 partition of orders for values in (8);
+create table orders_storage_9 partition of orders for values in (9);
+create table orders_storage_10 partition of orders for values in (10);
+create table orders_storage_11 partition of orders for values in (11);
+create table orders_storage_12 partition of orders for values in (12);
+create table orders_storage_13 partition of orders for values in (13);
+create table orders_storage_14 partition of orders for values in (14);
+create table orders_storage_15 partition of orders for values in (15);
+create table orders_storage_16 partition of orders for values in (16);
+create table orders_storage_17 partition of orders for values in (17);
+create table orders_storage_18 partition of orders for values in (18);
+create table orders_storage_19 partition of orders for values in (19);
+create table orders_storage_20 partition of orders for values in (20);
+
+--  unique indexes
+create unique index on orders_storage_1 (id);
+create unique index on orders_storage_2 (id);
+create unique index on orders_storage_3 (id);
+create unique index on orders_storage_4 (id);
+create unique index on orders_storage_5 (id);
+create unique index on orders_storage_6 (id);
+create unique index on orders_storage_7 (id);
+create unique index on orders_storage_8 (id);
+create unique index on orders_storage_9 (id);
+create unique index on orders_storage_10 (id);
+create unique index on orders_storage_11 (id);
+create unique index on orders_storage_12 (id);
+create unique index on orders_storage_13 (id);
+create unique index on orders_storage_14 (id);
+create unique index on orders_storage_15 (id);
+create unique index on orders_storage_16 (id);
+create unique index on orders_storage_17 (id);
+create unique index on orders_storage_18 (id);
+create unique index on orders_storage_19 (id);
+create unique index on orders_storage_20 (id);

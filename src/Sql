@@ -1,0 +1,215 @@
+create database route256;
+
+drop table if exists warehouses;
+create table warehouses
+(
+    id bigserial constraint pk_warehouses_id primary key ,
+    name text
+) with (autovacuum_enabled = false);
+
+insert into warehouses(name)
+SELECT md5(random()::text)
+FROM generate_series(1,20) g;
+
+
+drop table if exists clients;
+create table clients
+(
+    id bigserial constraint pk_clients_id primary key ,
+    name text
+) with (autovacuum_enabled = false);
+
+insert into clients(name)
+SELECT md5(random()::text)
+FROM generate_series(1,10000) g;
+
+drop table if exists order_type;
+
+create table order_type
+(
+    id bigint primary key,
+    name text not null
+) with (autovacuum_enabled = false);
+
+insert into order_type(id, name)
+values (1, 'fbo'), (2, 'fbs'), (3, 'retail');
+
+drop table if exists orders;
+
+create table orders
+(
+    id bigserial constraint pk_orders_id primary key,
+    creation_date timestamp not null default current_timestamp,
+    client_id bigint not null references clients(id),
+    is_completed boolean not null,
+    order_type_id bigint not null references order_type(id),
+    warehouse_id bigint not null references warehouses(id),
+    amount decimal(18, 2) not null,
+    items_data json not null
+) with (autovacuum_enabled = false);
+
+insert into orders(client_id, is_completed, warehouse_id, amount, order_type_id, items_data)
+select
+    c.id,
+    (CASE
+         WHEN floor(random() * 10 + 1)::int > 2 THEN true
+         ELSE false
+        END) AS is_completed,
+    (select warehouses.id from warehouses order by random() limit 1),
+    (random() * 100000)::decimal(18,2),
+    1,
+    '{"items":[{"item_id":1}, {"item_id":2}]}'::json
+from clients c
+         cross join generate_series(1,500) g
+where c.id % 10 = 0 or c.id % 10 = 9;
+
+insert into orders(client_id, is_completed, warehouse_id, amount, order_type_id, items_data)
+select
+    c.id,
+    (CASE
+         WHEN floor(random() * 10 + 1)::int > 1 THEN true
+         ELSE false
+        END) AS is_completed,
+    (select warehouses.id from warehouses order by random() limit 1),
+    (random() * 10000)::decimal(18,2),
+    2,
+    '{"items":[{"item_id":3}, {"item_id":4}]}'::json
+from clients c
+         cross join generate_series(1,200) g
+where c.id % 10 = 1 or c.id % 10 = 8;
+
+insert into orders(client_id, is_completed, warehouse_id, amount, order_type_id, items_data)
+select
+    c.id,
+    (CASE
+         WHEN floor(random() * 10 + 1)::int > 1 THEN true
+         ELSE false
+        END) AS is_completed,
+    (select warehouses.id from warehouses order by random() limit 1),
+    (random() * 10000)::decimal(18,2),
+    3,
+    '{"items":[{"item_id":5}, {"item_id":6}]}'::json
+from clients c
+         cross join generate_series(1,100) g
+where c.id % 10 = 2 or c.id % 10 = 7;
+
+insert into orders(client_id, is_completed, warehouse_id, amount, order_type_id, items_data)
+select
+    c.id,
+    (CASE
+         WHEN floor(random() * 10 + 1)::int > 4 THEN true
+         ELSE false
+        END) AS is_completed,
+    (select warehouses.id from warehouses order by random() limit 1),
+    (random() * 10000)::decimal(18,2),
+    1,
+    '{"items":[{"item_id":7}, {"item_id":8}]}'::json
+from clients c
+         cross join generate_series(1,3) g
+where c.id % 10 in (3,4,5,6);
+
+explain analyse 
+select *
+from warehouses;
+
+select reltuples, relpages, relallvisible
+from pg_class where relname = 'orders';
+
+vacuum clients;
+
+reset enable_bitmapscan; =off;
+
+explain analyse 
+select client_id, amount from orders where client_id =59;
+
+set max_parallel_workers_per_gather = 0;
+
+drop index ix_orders_client_id;
+
+create index ix_orders_client_id on orders(client_id); include(amount);
+
+set enable_indexscan = off;
+set enable_seqscan = off;
+
+reset work_mem; ='64kB';
+
+explain analyse 
+select id, client_id
+from orders where amount > 1000;
+
+create index ix_orders_amount on orders(amount);
+    
+explain
+select client_id, amount from orders where client_id > 59 and amount > 10000;
+
+drop index ix_orders_is_completed; on orders(is_completed) where is_completed is not null;
+
+
+drop table table_b;
+create table table_a(id int);
+create table table_b(id int);
+
+insert into table_a(id)
+values (1),(1),(1);
+
+insert into table_b(id)
+values (1),(1),(1);
+
+select * 
+from table_a a
+join table_b b on a.id = b.id;
+
+reset enable_nestloop;   = false;
+reset enable_mergejoin;   = false;
+
+reset work_mem; ='64kB';
+
+explain analyse 
+select *
+from orders o
+join clients c on o.client_id = c.id;
+
+
+explain
+select c.id, sum(o.amount)
+from clients c
+         join orders o on c.id = o.client_id
+group by c.id;
+
+explain
+select c.id, sum(o.amount)
+from clients c
+         join orders o on c.id = o.client_id
+where c.id = 4790
+group by c.id;
+
+explain 
+select *
+from orders o
+ cross JOIN LATERAL JSON_ARRAY_ELEMENTS((o.items_data->'items')) AS e(item);
+
+create table order_staff
+(
+    order_id bigint not null references orders(id),
+    staff_id bigint not null
+);
+
+create index ix_order_staff_order on order_staff(order_id);
+
+insert into order_staff(order_id, staff_id)
+select o.id, floor(random() * 10000 + 1)::int
+from orders o
+         cross join generate_series(1,3);
+
+set enable_nestloop =false;
+    
+
+explain analyse 
+select o.id, os.staff_id
+from orders o
+         join order_staff os on o.id = os.order_id;
+
+explain 
+select *
+from orders
+order by creation_date;

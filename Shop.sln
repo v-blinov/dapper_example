@@ -1,6 +1,9 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{18B82558-E955-45A7-AC7F-BCF8CC2198A9}"
+	ProjectSection(SolutionItems) = preProject
+		src\DatabaseScript = src\DatabaseScript
+	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ShopApi", "src\ShopApi\ShopApi.csproj", "{5C1FFF0C-CFC1-48D0-92AB-EFC123AC1D13}"
 EndProject
