@@ -1,4 +1,4 @@
-﻿using System.Data;
+using System.Data;
 using Dapper;
 using ShopApi.Data;
 using ShopApi.Enums;
@@ -71,8 +71,8 @@ public class OrderRepository : IOrderRepository
         var parameters = new DynamicParameters();
         parameters.Add("Id", order.Id, DbType.Guid);
         parameters.Add("ClientId", order.ClientId, DbType.Int64);
-        parameters.Add("CreationDate", order.CreationDate.ToUniversalTime(), DbType.DateTime);
-        parameters.Add("ReceivingDate", order.ReceivingDate?.ToUniversalTime(), DbType.DateTime);
+        parameters.Add("CreationDate", order.CreationDate, DbType.DateTime);
+        parameters.Add("ReceivingDate", order.ReceivingDate, DbType.DateTime);
         parameters.Add("Status", order.Status.ToString(), DbType.String);
         parameters.Add("Products", order.Products.Select(p => p.ToString()).ToArray(), DbType.Object);
         parameters.Add("StorageId", order.StorageId, DbType.Int64);
@@ -85,14 +85,14 @@ public class OrderRepository : IOrderRepository
     public Task CreateOrder(IEnumerable<Order> orders) 
         => throw new NotImplementedException();
 
-    
+
     public async Task<IEnumerable<Order>> Test()
     {
         var filter = new Filter
         {
             StorageId = null,
             Status = Status.New,
-            OrderPeriod = new Period { Start = DateTime.Now.AddMonths(-1).ToUniversalTime(), End = DateTime.Now.ToUniversalTime() },
+            OrderPeriod = new Period { Start = DateTime.Now.AddMonths(-1), End = DateTime.Now },
             ReceivingPeriod = new Period { Start = DateTime.Now.AddMonths(-1).ToUniversalTime(), End = DateTime.Now.ToUniversalTime() }
         };
 

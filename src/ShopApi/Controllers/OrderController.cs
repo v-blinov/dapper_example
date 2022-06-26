@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using System.Text.Json;
+using Microsoft.AspNetCore.Mvc;
 using ShopApi.Enums;
 using ShopApi.Models;
 using ShopApi.Repositories.Interfaces;
@@ -33,10 +34,12 @@ public class OrderController : Controller
     
     
     [HttpPost("create/")]
-    public async Task<ActionResult<IEnumerable<Order>>> CreateOrder([FromForm] Order order)
+    public async Task<ActionResult<IEnumerable<Order>>> CreateOrder([FromForm] Order orderInput)
     {        
         try
         {
+            var order = orderInput with { Products = Request.Form["Products"].ToArray().Select(p => JsonSerializer.Deserialize<OrderNote>(p)).ToArray() };
+            
             await _orderRepository.CreateOrder(order);
             return Ok(order);
         }
