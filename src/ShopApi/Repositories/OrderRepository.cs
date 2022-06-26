@@ -1,5 +1,6 @@
-using System.Data;
+﻿using System.Data;
 using Dapper;
+using Npgsql;
 using ShopApi.Data;
 using ShopApi.Enums;
 using ShopApi.Models;
@@ -60,6 +61,8 @@ public class OrderRepository : IOrderRepository
                 StorageId = (long)reader[6]
             };
         }
+
+        while(reader.NextResult()) { }
     }
 
     
@@ -81,9 +84,23 @@ public class OrderRepository : IOrderRepository
         await connection.ExecuteAsync(query, parameters);
     }
 
-    // TODO: insert bulk
-    public Task CreateOrder(IEnumerable<Order> orders) 
-        => throw new NotImplementedException();
+    public async Task CreateOrder(IEnumerable<Order> orders)
+    {
+        throw new Exception("Method doesn't work. Use order/create/random");
+        
+        // Ругается на маппинг status поля 
+        // даже если в context подключаю маппинг для enum (mapper.MapEnum<Status>("status");)
+        var query = @"insert into orders (id, client_id, creation_date, receiving_date, status, products, storage_id)
+                      select o.id, o.client_id, o.creation_date, o.receiving_date, o.status::status, o.products::product_note[], o.storage_id
+                      from unnest(@Orders) as o";
+
+        var parameters = new DynamicParameters();
+        
+        parameters.Add("Orders", orders.ToArray(), DbType.Object);
+        
+        using var connection = _context.CreateConnection();
+        await connection.ExecuteAsync(query, parameters);
+    }
 
 
     public async Task<IEnumerable<Order>> Test()
@@ -93,7 +110,7 @@ public class OrderRepository : IOrderRepository
             StorageId = null,
             Status = Status.New,
             OrderPeriod = new Period { Start = DateTime.Now.AddMonths(-1), End = DateTime.Now },
-            ReceivingPeriod = new Period { Start = DateTime.Now.AddMonths(-1).ToUniversalTime(), End = DateTime.Now.ToUniversalTime() }
+            ReceivingPeriod = new Period { Start = DateTime.Now.AddMonths(-1), End = DateTime.Now }
         };
 
         var query = @"select id, client_id as ClientId, creation_date as CreationDate, receiving_date as ReceivingDate, status as Status, products as Products, storage_id as StorageId

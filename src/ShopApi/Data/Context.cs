@@ -17,9 +17,11 @@ public class Context
     public IDbConnection CreateConnection()
     {
         var mapper = NpgsqlConnection.GlobalTypeMapper;
-        // mapper.MapEnum<Status>("status");
         mapper.MapComposite<OrderNote>("product_note");
-        
+
+        // use for bulkUpdate
+        // mapper.MapEnum<Status>("status");
+        // mapper.MapComposite<OrderWrite>("order_item");
         return new NpgsqlConnection(_connectionString);
     }
 }
