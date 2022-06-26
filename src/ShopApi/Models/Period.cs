@@ -5,6 +5,17 @@
 /// </summary>
 public record Period
 {
-    public DateTime? Start { get; init; }
-    public DateTime? End { get; init; }
+    private readonly DateTime? _start;
+    private readonly DateTime? _end;
+
+    public DateTime? Start
+    {
+        get => _start;
+        init => _start = value?.ToUniversalTime();
+    }
+    public DateTime? End 
+    {
+        get => _end;
+        init => _end = value?.ToUniversalTime();
+    }
 }

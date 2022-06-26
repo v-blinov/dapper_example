@@ -17,13 +17,28 @@ public class OrderController : Controller
         _orderRepository = orderRepository;
     }
 
-    [HttpPost("order")]
-    public async Task<ActionResult<IEnumerable<Order>>> GetOrders([FromForm] Filter filter)
+    [HttpGet("orders")]
+    public IAsyncEnumerable<Order>? GetOrders([FromQuery] Filter filter)
     {
         try
         {
-            var orders = await _orderRepository.GetByFilter(filter);
-            return Ok(orders);
+            return _orderRepository.GetWithStreamByFilter(filter);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "");
+            return null;
+        }
+    }
+    
+    
+    [HttpPost("create/")]
+    public async Task<ActionResult<IEnumerable<Order>>> CreateOrder([FromForm] Order order)
+    {        
+        try
+        {
+            await _orderRepository.CreateOrder(order);
+            return Ok(order);
         }
         catch (Exception ex)
         {
@@ -32,13 +47,29 @@ public class OrderController : Controller
         }
     }
     
-    [HttpPost("order/stream")]
-    public async Task<ActionResult<IEnumerable<Order>>> GetOrdersStream([FromForm] Filter filter)
-    {
+    [HttpPost("create/random")]
+    public async Task<ActionResult<IEnumerable<Order>>> CreateOrder()
+    {        
+        var random = new Random();
+
         try
         {
-            var orders = await _orderRepository.GetWithStreamByFilter(filter);
-            return Ok(orders);
+            const int dateRange = 30;
+            var dateStart = DateTime.Now.AddDays(-dateRange);
+            
+            var order = new Order
+            {
+                Id = Guid.NewGuid(),
+                ClientId = random.NextInt64(),
+                Status = GetRandomStatus(random.Next(0, 99)),
+                CreationDate = dateStart.AddDays(random.Next(dateRange / 2)),
+                ReceivingDate = dateStart.AddDays((dateRange / 2) + random.Next(dateRange / 2)),
+                Products = GenerateNewProducts(random).ToArray(),
+                StorageId = random.Next(1, 20)
+            };
+
+            await _orderRepository.CreateOrder(order);
+            return Ok(order);
         }
         catch (Exception ex)
         {
@@ -47,8 +78,8 @@ public class OrderController : Controller
         }
     }
     
-    [HttpPost("orders/create/random")]
-    public async Task<ActionResult<IEnumerable<Order>>> CreateRandomOrder([FromForm] int count = 3)
+    [HttpPost("create/random/many")]
+    public async Task<ActionResult<IEnumerable<Order>>> CreateRandomOrder([FromForm] int count = 10)
     {
         var random = new Random();
 
@@ -67,7 +98,7 @@ public class OrderController : Controller
                     Status = GetRandomStatus(random.Next(0, 99)),
                     CreationDate = dateStart.AddDays(random.Next(dateRange / 2)),
                     ReceivingDate = dateStart.AddDays((dateRange / 2) + random.Next(dateRange / 2)),
-                    Products = GenerateNewProducts(random),
+                    Products = GenerateNewProducts(random).ToArray(),
                     StorageId = random.Next(1, 20)
                 };
             }
@@ -82,40 +113,18 @@ public class OrderController : Controller
         }
     }
     
-    [HttpPost("orders/create")]
-    public async Task<ActionResult<IEnumerable<Order>>> CreateOrder([FromForm] Order? order = null)
-    {        
-        var random = new Random();
-
-        try
-        {
-            const int dateRange = 30;
-            var dateStart = DateTime.Now.AddDays(-dateRange);
-            
-            order ??= new Order
-            {
-                Id = Guid.NewGuid(),
-                ClientId = random.NextInt64(),
-                Status = GetRandomStatus(random.Next(0, 99)),
-                CreationDate = dateStart.AddDays(random.Next(dateRange / 2)),
-                ReceivingDate = dateStart.AddDays((dateRange / 2) + random.Next(dateRange / 2)),
-                Products = GenerateNewProducts(random),
-                StorageId = random.Next(1, 20)
-            };
-
-            await _orderRepository.CreateOrder(order);
-            return Ok(order);
-        }
-        catch (Exception ex)
-        {
-            _logger.LogError(ex, "");
-            return StatusCode(500, ex.Message);
-        }
+    
+    [HttpGet("test")]
+    public async Task<ActionResult<IEnumerable<Order>>> Test()
+    {
+        var orders = await _orderRepository.Test();
+        return Ok(orders.ToArray());
     }
-
+    
+    
     private static IEnumerable<OrderNote> GenerateNewProducts(Random random)
     {
-        var capacity = random.Next(0, 20);
+        var capacity = random.Next(1, 20);
         var instances = new OrderNote[capacity];
         for(var i = 0; i < capacity; i++)
         {

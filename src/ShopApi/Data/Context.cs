@@ -1,5 +1,7 @@
 ﻿using System.Data;
 using Npgsql;
+using ShopApi.Enums;
+using ShopApi.Models;
 
 namespace ShopApi.Data;
 
@@ -13,5 +15,11 @@ public class Context
     }
 
     public IDbConnection CreateConnection()
-    => new NpgsqlConnection(_connectionString);
+    {
+        var mapper = NpgsqlConnection.GlobalTypeMapper;
+        // mapper.MapEnum<Status>("status");
+        mapper.MapComposite<OrderNote>("product_note");
+        
+        return new NpgsqlConnection(_connectionString);
+    }
 }

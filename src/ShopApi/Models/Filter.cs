@@ -4,8 +4,8 @@ namespace ShopApi.Models;
 
 public record Filter
 {
-    public IEnumerable<long>? StorageIds { get; init; } = null;
-    public IEnumerable<Status>? Status { get; init; } = null;
-    public Period? OrderPeriod { get; init; } = null;
-    public Period? ReceivingPeriod { get; init; } = null;
+    public long? StorageId { get; init; }
+    public Status Status { get; init; } = Status.Unknown;
+    public Period? OrderPeriod { get; init; }
+    public Period? ReceivingPeriod { get; init; }
 }
